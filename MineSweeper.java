@@ -27,12 +27,12 @@ public class MineSweeper{
             toFlag = (boolean)pointInput[2];
 
             if (toFlag){
-                if (!board.isSeen(rowInput - 1, columnInput - 1)){
+                if (!board.isSeen(rowInput, columnInput)){
                     board.addFlag(rowInput, columnInput);
                 }
             }
             else{
-                if (!board.isFlaged(rowInput - 1, columnInput - 1)){
+                if (!board.isFlaged(rowInput, columnInput)){
                     isLost = board.check(rowInput, columnInput);
                 }
             }
