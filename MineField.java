@@ -11,6 +11,9 @@ public class MineField {
 
     public MineField(int rows, int columns, int bombs){
         //Create array of player view which starts as all unknown spaces
+        isMine = new boolean[rows][columns];
+        isFlag = new boolean[rows][columns];
+        isSeen = new boolean[rows][columns];
         number = new int[rows][columns];
         spacesUnchecked = number.length * number[0].length;
         
@@ -141,7 +144,7 @@ public class MineField {
                     System.out.print("F");
                 }
 
-                else if (isSeen[x][y] && isSeen[x][y]){
+                else if (isMine[x][y] && isSeen[x][y]){
                     System.out.print("!");
                 }
 
