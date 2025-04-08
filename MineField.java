@@ -6,6 +6,7 @@ public class MineField {
     private int number[][];
     private int spacesUnchecked;
     private int bombCount;
+    private int inputBombs;
     final int SEPERATION_SPACES = 3;
     
 
@@ -20,30 +21,36 @@ public class MineField {
         //There are 0 bombs at start
         bombCount = 0;
 
-        bombAdder(bombs);
+        inputBombs = bombs;
     }
 
     public int rowLength(){return number.length;}
     public int columnLength(){return number[0].length;}
+    public int getNumber(int row, int column){return number[row][column];}
     public boolean isWon(){return spacesUnchecked == bombCount;}
-    public boolean isSeen(int row, int column){return isSeen[row - 1][column - 1];}
-    public boolean isFlaged(int row, int column){return isFlag[row - 1][column - 1];}
+    public boolean isSeen(int row, int column){return isSeen[row][column];}
+    public boolean isFlaged(int row, int column){return isFlag[row][column];}
+    public boolean isMine(int row, int column){return isMine[row][column];}
 
     public boolean check(int row, int column){
-        if (isFlag[row - 1][column - 1]){
+        if (isFlag[row][column]){
             throw new Error("Flag must be removed before checking for mine.");
+        }
+        if ( bombCount == 0){
+            bombAdder(inputBombs, row, column);
         }
 
 
-        if (!isSeen[row - 1][column - 1]){
+        if (!isSeen[row][column]){
             spacesUnchecked--;
-            isSeen[row - 1][column - 1] = true;
+            isSeen[row][column] = true;
 
-            if (number[row - 1][column - 1] == 0 && !isFlag[row - 1][column - 1]){
+            if (number[row][column] == 0 && !isFlag[row][column]){
                 for (int xCheck = -1; xCheck <= 1; xCheck++){
                     for (int yCheck = -1; yCheck <= 1; yCheck++){
-                        if ((0 < row + xCheck && row + xCheck <= number.length) 
-                        && (0 < column + yCheck && column + yCheck <= number[0].length) 
+                        if ((0 <= row + xCheck && row + xCheck < number.length) 
+                        && (0 <= column + yCheck && column + yCheck < number[0].length)
+                        && (!isFlag[row + xCheck][column + yCheck])
                         && (xCheck != 0 || yCheck != 0)){
                             check(row + xCheck, column + yCheck);
                         }
@@ -52,19 +59,41 @@ public class MineField {
             }
         }
 
-        return isMine[row - 1][column - 1];
+        //If a mine is hit, reveal all mines
+        if (isMine[row][column]){
+            for (int x = 0; x < number.length; x++){
+                for (int y = 0; y < number[0].length; y++){
+                    if (isMine[x][y]){
+                        isSeen[x][y] = true;
+                    }
+                }
+            }
+        }
+        //If won, flag all mines
+        else if (isWon()){
+            for (int x = 0; x < number.length; x++){
+                for (int y = 0; y < number[0].length; y++){
+                    if (isMine[x][y]){
+                        isFlag[x][y] = true;
+                    }
+                }
+            }
+        }
+
+        return isMine[row][column];
     }
 
     public void addFlag(int row, int column){
-        if (isFlag[row - 1][column - 1]){
-            isFlag[row - 1][column - 1] = false;
+        if (isFlag[row][column]){
+            isFlag[row][column] = false;
         }
         else{
-            isFlag[row - 1][column - 1] = true;
+            isFlag[row][column] = true;
         }
     }
 
-    protected void bombAdder(int bombs){
+    protected void bombAdder(int bombs, int avoidRow, int avoidColumn){
+        final int BOMB_DISTANCE = 1;
         bombCount += bombs;
 
         /* Error Code */
@@ -82,7 +111,8 @@ public class MineField {
             row = mineGenerator.nextInt(number.length);
             column = mineGenerator.nextInt(number[0].length);
             
-            if (!isMine[row][column]){
+            if (!isMine[row][column] 
+            && !(avoidRow - BOMB_DISTANCE <= row && row <= avoidRow + BOMB_DISTANCE && avoidColumn - BOMB_DISTANCE <= column && column <= avoidColumn + BOMB_DISTANCE)){
                 isMine[row][column] = true;
                 dummyCounter++;
             }
