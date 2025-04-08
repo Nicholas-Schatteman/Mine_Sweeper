@@ -33,12 +33,17 @@ public class GraphicsRendering extends JPanel{
             public void mouseClicked(MouseEvent e){
                 int space[] = pointToSpace(getMousePosition());
                 if (!board.isWon() && !isLost){
-                    if (space[0] < board.rowLength() && space[1] < board.columnLength() && !board.isFlaged(space[0], space[1]) && (e.getButton() == MouseEvent.BUTTON1)){
+                    if (space[0] < board.rowLength() 
+                    && space[1] < board.columnLength() 
+                    && !board.isFlaged(space[0], space[1]) 
+                    && !e.isControlDown() 
+                    && !board.isSeen(space[0], space[1]) 
+                    && (e.getButton() == MouseEvent.BUTTON1)){
                         //If a bomb is pressed
                         isLost = board.check(space[0], space[1]);
                         repaint();
                     }
-                    else if (space[0] < board.rowLength() && space[1] < board.columnLength() && !board.isSeen(space[0], space[1]) && (e.getButton() == MouseEvent.BUTTON3)){
+                    else if (space[0] < board.rowLength() && space[1] < board.columnLength() && !board.isSeen(space[0], space[1]) && (e.isControlDown() || (e.getButton() == MouseEvent.BUTTON3))){
                         board.addFlag(space[0], space[1]);
                         repaint();
                     }
@@ -47,23 +52,6 @@ public class GraphicsRendering extends JPanel{
             @Override
             public void mouseDragged(MouseEvent e){
                 System.out.println("a");
-            }
-        });
-        addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyPressed(KeyEvent e){
-                System.out.println("Key press");
-                if (e.isControlDown()){
-                    isCtrlHeld = true;
-                    System.out.println("ctrl pressed");
-                }
-            }
-            @Override
-            public void keyReleased(KeyEvent e){
-                if (!e.isControlDown()){
-                    isCtrlHeld = false;
-                    System.out.println("ctrl unpressed");
-                }
             }
         });
         try{
