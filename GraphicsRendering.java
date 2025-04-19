@@ -15,17 +15,18 @@ import javax.sound.sampled.UnsupportedAudioFileException;
 import javax.swing.JPanel;
 
 public class GraphicsRendering extends JPanel{
-    public MineField board = new MineField(10, 10, 20);
-    private BufferedImage tile, flag, bomb;
+    public MineField board = new MineField(20, 20, 20);
+    private BufferedImage tile, flag, falseFlag, bomb, hitBomb;
     private BufferedImage number[] = new BufferedImage[9];
     private Clip dig;
     private Clip hit;
     private int mouseOveredTile[];
+    private int lossingTile[];
     private boolean isM1Pressed;
     private boolean isLost = false;
 
-    final public int TILE_HEIGHT = 25;
-    final public int TILE_WIDTH = 25;
+    final private double TOP_X_TO_Y_MULTIPLIER = 0.25;
+    final private int BORDER_WIDTH = 12;
 
     public GraphicsRendering(){
         super();
@@ -33,6 +34,8 @@ public class GraphicsRendering extends JPanel{
         mouseOveredTile = new int[2];
         mouseOveredTile[0] = -1;
         mouseOveredTile[1] = -1;
+
+        lossingTile = new int[2];
 
         MouseAdapter mouseReader = new MouseAdapter() {
             @Override
@@ -54,10 +57,12 @@ public class GraphicsRendering extends JPanel{
                         //If a bomb is pressed
                         isLost = board.check(space[0], space[1]);
                         if (!isLost){
-                            dig.loop(1);
+                            dig.start();
+                            dig.setFramePosition(0);
                         }
                         else{
                             hit.start();
+                            lossingTile = space;
                         }
                         repaint();
                     }
@@ -101,7 +106,9 @@ public class GraphicsRendering extends JPanel{
         try{
             tile = ImageIO.read(new File("Images\\Tile.png"));
             flag = ImageIO.read(new File("Images\\Flag.png"));
+            falseFlag = ImageIO.read(new File("Images\\FalseFlag.png"));
             bomb = ImageIO.read(new File("Images\\Bomb.png"));
+            hitBomb = ImageIO.read(new File("Images\\HitBomb.png"));
             number[0] = ImageIO.read(new File("Images\\Number0.png"));
             number[1] = ImageIO.read(new File("Images\\Number1.png"));
             number[2] = ImageIO.read(new File("Images\\Number2.png"));
@@ -115,7 +122,6 @@ public class GraphicsRendering extends JPanel{
             File audioDig = new File("Audio\\Dig.wav");
             dig = AudioSystem.getClip();
             dig.open(AudioSystem.getAudioInputStream(audioDig));
-            dig.start();
 
             File audioHit = new File("Audio\\Hit.wav");
             hit = AudioSystem.getClip();
@@ -127,29 +133,56 @@ public class GraphicsRendering extends JPanel{
 
     private int[] pointToSpace(Point p){
         int space[] = new int[2];
-        space[0] = (int)(p.getX() / TILE_WIDTH);
-        space[1] = (int)(p.getY() / TILE_HEIGHT);
+        space[0] = (int)((p.getX() - BORDER_WIDTH) / getTileDimension());
+        space[1] = (int)((p.getY() - 2 * BORDER_WIDTH) / getTileDimension() - TOP_X_TO_Y_MULTIPLIER * board.rowLength());
         return space;
+    }
+
+    private int getTileDimension(){
+        int dimensions;
+        if ((getWidth() - 2 * BORDER_WIDTH) / board.rowLength() >= (int)((getHeight() - 3 * BORDER_WIDTH) / (TOP_X_TO_Y_MULTIPLIER * board.rowLength() + board.columnLength()))){
+            //dimensions = (getHeight() - 3 * BORDER_WIDTH - (int)(TOP_X_TO_Y_MULTIPLIER * board.rowLength())) / board.columnLength();
+            dimensions = (int)((getHeight() - 3 * BORDER_WIDTH) / (TOP_X_TO_Y_MULTIPLIER * board.rowLength() + board.columnLength()));
+        }
+        else{
+            dimensions = (getWidth() - 2 * BORDER_WIDTH) / board.rowLength();
+        }
+
+        return dimensions;
+    }
+
+    private int tileDrawnPosX(int x){
+        return getTileDimension() * x + BORDER_WIDTH;
+    }
+
+    private int tileDrawnPosY(int y){
+        return (int)(getTileDimension() * (y + TOP_X_TO_Y_MULTIPLIER * board.rowLength()) + 2 * BORDER_WIDTH);
     }
 
     @Override
     public void paint(Graphics g) {
         for (int y = 0; y < board.columnLength(); y++){
             for (int x = 0; x < board.rowLength(); x++){
-                if (board.isFlaged(x, y)){
-                    g.drawImage(flag, TILE_HEIGHT * x, TILE_WIDTH * y, TILE_WIDTH, TILE_HEIGHT,null);
+                if (board.isFlaged(x, y) && !board.isMine(x, y) && isLost){
+                    g.drawImage(falseFlag, tileDrawnPosX(x), tileDrawnPosY(y), getTileDimension(), getTileDimension(),null);
+                }
+                else if (board.isFlaged(x, y)){
+                    g.drawImage(flag, tileDrawnPosX(x), tileDrawnPosY(y), getTileDimension(), getTileDimension(),null);
                 }
                 else if (!board.isSeen(x, y) && x == mouseOveredTile[0] && y == mouseOveredTile[1]){
-                    g.drawImage(number[0], TILE_HEIGHT * x, TILE_WIDTH * y, TILE_WIDTH, TILE_HEIGHT,null);
+                    g.drawImage(number[0], tileDrawnPosX(x), tileDrawnPosY(y), getTileDimension(), getTileDimension(),null);
                 }
                 else if (!board.isSeen(x, y)){
-                    g.drawImage(tile, TILE_HEIGHT * x, TILE_WIDTH * y, TILE_WIDTH, TILE_HEIGHT,null);
+                    g.drawImage(tile, tileDrawnPosX(x), tileDrawnPosY(y), getTileDimension(), getTileDimension(),null);
                 }
                 else if (!board.isMine(x, y)){
-                    g.drawImage(number[board.getNumber(x, y)], TILE_HEIGHT * x, TILE_WIDTH * y, TILE_WIDTH, TILE_HEIGHT,null);
+                    g.drawImage(number[board.getNumber(x, y)], tileDrawnPosX(x), tileDrawnPosY(y), getTileDimension(), getTileDimension(),null);
+                }
+                else if (x == lossingTile[0] && y == lossingTile[1]){
+                    g.drawImage(hitBomb, tileDrawnPosX(x), tileDrawnPosY(y), getTileDimension(), getTileDimension(),null);
                 }
                 else{
-                    g.drawImage(bomb, TILE_HEIGHT * x, TILE_WIDTH * y, TILE_WIDTH, TILE_HEIGHT,null);
+                    g.drawImage(bomb, tileDrawnPosX(x), tileDrawnPosY(y), getTileDimension(), getTileDimension(),null);
                 }
             }
         }
